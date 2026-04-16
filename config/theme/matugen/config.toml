@@ -8,8 +8,6 @@ bar_radius = "16px"
 alpha_surface = "0.86"
 alpha_float = "0.93"
 
-[config.wallpaper]
-set = false
 
 [templates.colors_css]
 input_path = '~/.config/theme/matugen/templates/colors.css'
