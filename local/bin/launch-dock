@@ -1,3 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec nwg-dock-hyprland -r -i 44 -w 10 -p bottom -l overlay -a center -mt 0 -mb 20 -ml 0 -mr 0 -c "$HOME/.local/bin/launch-rofi" -s "$HOME/.config/theme/generated/nwg-dock.css"
+
+exec nwg-dock-hyprland \
+  -r \
+  -i 44 \
+  -w 10 \
+  -p bottom \
+  -l overlay \
+  -a center \
+  -mt 0 \
+  -mb 20 \
+  -ml 0 \
+  -mr 0 \
+  -c "$HOME/.local/bin/launch-rofi" \
+  -s "$HOME/.config/theme/generated/nwg-dock.css"

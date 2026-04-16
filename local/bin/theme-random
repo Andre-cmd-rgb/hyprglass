@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
+IFS=$'\n\t'
 
 WALL_DIR="${1:-$HOME/Pictures/Wallpapers/hyprglass}"
 
-mapfile -t walls < <(find "$WALL_DIR" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \))
-if [[ ${#walls[@]} -eq 0 ]]; then
+mapfile -t walls < <(
+  find "$WALL_DIR" -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jxl' \) \
+    ! -name 'current' ! -name 'current.*' | sort
+)
+
+if (( ${#walls[@]} == 0 )); then
   echo "theme-random: no wallpapers found in $WALL_DIR" >&2
   exit 1
 fi

@@ -1,130 +1,158 @@
 #!/usr/bin/env bash
 set -euo pipefail
+IFS=$'\n\t'
 
-umask 022
+PROJECT_NAME="hyprglass"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 
-readonly DEFAULT_WALL_DIR="$HOME/Pictures/Wallpapers/hyprglass"
-readonly DEFAULT_WALLPAPER="$DEFAULT_WALL_DIR/default.png"
+THEME_DIR="$CONFIG_HOME/theme"
+GENERATED_DIR="$THEME_DIR/generated"
+MATUGEN_CONFIG="$THEME_DIR/matugen/config.toml"
+HYPR_DIR="$CONFIG_HOME/hypr"
+HYPRPAPER_CONF="$HYPR_DIR/hyprpaper.conf"
+STATE_FILE="$THEME_DIR/current_wallpaper"
+LOCK_FILE="$THEME_DIR/.theme-apply.lock"
+MANAGED_WALL_DIR="$HOME/Pictures/Wallpapers/$PROJECT_NAME"
+DEFAULT_WALLPAPER="$MANAGED_WALL_DIR/default.png"
+CURRENT_LINK="$MANAGED_WALL_DIR/current"
+SHARED_STATE_ROOT="/var/lib/$PROJECT_NAME"
+SHARED_WALL_DIR="$SHARED_STATE_ROOT/wallpapers"
+SHARED_GREETER_DIR="$SHARED_STATE_ROOT/greeter"
 
-readonly THEME_DIR="$HOME/.config/theme"
-readonly MATUGEN_CONFIG="$THEME_DIR/matugen/config.toml"
-readonly GENERATED_DIR="$THEME_DIR/generated"
-readonly HYPRPAPER_CONF="$HOME/.config/hypr/hyprpaper.conf"
-readonly WALLPAPER_STATE="$THEME_DIR/current_wallpaper"
-
-color() { printf '\033[%sm%s\033[0m\n' "$1" "$2"; }
-info()  { color "1;36" "[INFO] $*"; }
-ok()    { color "1;32" "[ OK ] $*"; }
-warn()  { color "1;33" "[WARN] $*"; }
-fail()  { color "1;31" "[FAIL] $*"; }
-
-require_cmd() {
-  local cmd="$1"
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    fail "Missing required command: $cmd"
-    exit 1
-  fi
+log() {
+  printf '[theme-apply] %s\n' "$*" >&2
 }
 
-pick_wallpaper() {
-  local requested="${1:-$DEFAULT_WALLPAPER}"
+die() {
+  log "$*"
+  exit 1
+}
+
+ensure_dirs() {
+  mkdir -p "$THEME_DIR" "$GENERATED_DIR" "$HYPR_DIR" "$MANAGED_WALL_DIR" "$CACHE_HOME/$PROJECT_NAME" "$STATE_HOME/$PROJECT_NAME"
+}
+
+is_image_file() {
+  local path="$1"
+  [[ -f "$path" ]] || return 1
+  case "${path,,}" in
+    *.png|*.jpg|*.jpeg|*.webp|*.bmp|*.gif|*.jxl) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+list_available_wallpapers() {
+  find "$MANAGED_WALL_DIR" -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jxl' \) \
+    ! -name 'current' ! -name 'current.*' | sort
+}
+
+resolve_wallpaper() {
+  local requested="${1:-}"
   local candidate=""
-  local first_found=""
-  local -a available_walls=()
 
-  candidate="$(realpath -m -- "$requested")"
-  if [[ -f "$candidate" ]]; then
+  if [[ -n "$requested" ]]; then
+    candidate="$(realpath -m "$requested")"
+    if is_image_file "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+    return 1
+  fi
+
+  if [[ -f "$STATE_FILE" ]]; then
+    candidate="$(head -n 1 "$STATE_FILE" 2>/dev/null || true)"
+    if [[ -n "$candidate" && -f "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+
+  if is_image_file "$DEFAULT_WALLPAPER"; then
+    printf '%s\n' "$DEFAULT_WALLPAPER"
+    return 0
+  fi
+
+  candidate="$(list_available_wallpapers | head -n 1 || true)"
+  if [[ -n "$candidate" ]]; then
     printf '%s\n' "$candidate"
-    return 0
-  fi
-
-  if [[ -f "$DEFAULT_WALLPAPER" ]]; then
-    realpath -e -- "$DEFAULT_WALLPAPER"
-    return 0
-  fi
-
-  mapfile -t available_walls < <(
-    find "$DEFAULT_WALL_DIR" -maxdepth 1 -type f \
-      \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
-      | sort
-  )
-
-  if (( ${#available_walls[@]} > 0 )); then
-    first_found="${available_walls[0]}"
-    realpath -e -- "$first_found"
     return 0
   fi
 
   return 1
 }
 
-prepare_wallpaper() {
-  local source_wall="$1"
-  local ext=""
-  local managed_wall=""
-  local old=""
+normalize_wallpaper() {
+  local source="$1"
+  local ext base managed
 
-  ext="${source_wall##*.}"
-  if [[ "$ext" == "$source_wall" ]]; then
-    ext="img"
-  fi
+  ext="${source##*.}"
   ext="${ext,,}"
+  managed="$MANAGED_WALL_DIR/current.$ext"
 
-  managed_wall="$DEFAULT_WALL_DIR/current.$ext"
+  if [[ ! -f "$managed" ]] || ! cmp -s "$source" "$managed"; then
+    cp -f "$source" "$managed"
+  fi
 
-  mkdir -p "$GENERATED_DIR" "$DEFAULT_WALL_DIR" "$(dirname "$HYPRPAPER_CONF")"
-
-  shopt -s nullglob
-  for old in "$DEFAULT_WALL_DIR"/current.*; do
-    [[ -e "$old" || -L "$old" ]] || continue
-    rm -f -- "$old"
-  done
-  shopt -u nullglob
-
-  rm -f -- "$DEFAULT_WALL_DIR/current"
-  cp -f -- "$source_wall" "$managed_wall"
-  ln -sfn "$managed_wall" "$DEFAULT_WALL_DIR/current"
-
-  printf '%s\n' "$managed_wall" > "$WALLPAPER_STATE"
-  printf '%s\n' "$managed_wall"
+  ln -sfn "$(basename "$managed")" "$CURRENT_LINK"
+  printf '%s\n' "$managed"
 }
 
 write_hyprpaper_conf() {
-  local managed_wall="$1"
-
+  local wallpaper="$1"
   cat > "$HYPRPAPER_CONF" <<EOF
 ipc = true
 splash = false
 
 wallpaper {
     monitor =
-    path = $managed_wall
+    path = $wallpaper
     fit_mode = cover
 }
 EOF
 }
 
-run_matugen() {
-  local managed_wall="$1"
+sync_greeter_assets() {
+  local wallpaper="$1"
+  local ext shared_wall
 
-  require_cmd matugen
+  if [[ -d "$SHARED_WALL_DIR" && -w "$SHARED_WALL_DIR" ]]; then
+    ext="${wallpaper##*.}"
+    ext="${ext,,}"
+    shared_wall="$SHARED_WALL_DIR/current.$ext"
+    cp -f "$wallpaper" "$shared_wall"
+    ln -sfn "$(basename "$shared_wall")" "$SHARED_WALL_DIR/current"
 
-  if [[ ! -f "$MATUGEN_CONFIG" ]]; then
-    fail "Matugen config not found: $MATUGEN_CONFIG"
-    exit 1
+    if [[ -f "$DEFAULT_WALLPAPER" ]]; then
+      cp -f "$DEFAULT_WALLPAPER" "$SHARED_WALL_DIR/default.png"
+    fi
   fi
 
-  info "Generating theme from wallpaper"
-  matugen -c "$MATUGEN_CONFIG" image "$managed_wall" --source-color-index 0
+  if [[ -d "$SHARED_GREETER_DIR" && -w "$SHARED_GREETER_DIR" && -f "$GENERATED_DIR/gtkgreet.css" ]]; then
+    cp -f "$GENERATED_DIR/gtkgreet.css" "$SHARED_GREETER_DIR/gtkgreet.css"
+  fi
+}
+
+run_matugen() {
+  local wallpaper="$1"
+  [[ -f "$MATUGEN_CONFIG" ]] || die "missing matugen config: $MATUGEN_CONFIG"
+  command -v matugen >/dev/null 2>&1 || die 'matugen is not installed'
+
+  if ! matugen -c "$MATUGEN_CONFIG" image --mode dark --source-color-index 0 "$wallpaper" >/dev/null 2>&1; then
+    die 'matugen failed to generate theme files'
+  fi
 }
 
 reload_runtime() {
-  local managed_wall="$1"
+  local wallpaper="$1"
 
-  if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && command -v hyprctl >/dev/null 2>&1; then
-    if pgrep -x hyprpaper >/dev/null 2>&1; then
-      hyprctl hyprpaper wallpaper ",$managed_wall,cover" >/dev/null 2>&1 || true
-    fi
+  if command -v hyprctl >/dev/null 2>&1; then
+    hyprctl hyprpaper preload "$wallpaper" >/dev/null 2>&1 || true
+    hyprctl hyprpaper wallpaper ",$wallpaper,cover" >/dev/null 2>&1 || true
+    hyprctl hyprpaper unload unused >/dev/null 2>&1 || true
     hyprctl reload >/dev/null 2>&1 || true
   fi
 
@@ -136,36 +164,46 @@ reload_runtime() {
     makoctl reload >/dev/null 2>&1 || true
   fi
 
-  if command -v kitten >/dev/null 2>&1; then
+  if command -v kitten >/dev/null 2>&1 && [[ -f "$GENERATED_DIR/kitty-theme.conf" ]]; then
     kitten @ set-colors -a "$GENERATED_DIR/kitty-theme.conf" >/dev/null 2>&1 || true
   fi
 
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send "hyprglass" "Wallpaper and theme applied"
+  if pgrep -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1; then
+    pkill -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || true
+    if [[ -x "$HOME/.local/bin/launch-dock" ]]; then
+      "$HOME/.local/bin/launch-dock" >/dev/null 2>&1 &
+    fi
   fi
 }
 
 main() {
-  local requested_wall="${1:-$DEFAULT_WALLPAPER}"
-  local source_wall=""
-  local managed_wall=""
+  local requested="${1:-}"
+  local resolved managed
 
-  require_cmd realpath
-  require_cmd find
-  require_cmd cp
+  ensure_dirs
 
-  source_wall="$(pick_wallpaper "$requested_wall")" || {
-    fail "No wallpaper found. Expected $DEFAULT_WALLPAPER or any image in $DEFAULT_WALL_DIR"
-    exit 1
-  }
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    log 'another theme update is already running; skipping.'
+    exit 0
+  fi
 
-  managed_wall="$(prepare_wallpaper "$source_wall")"
+  if [[ -n "$requested" ]]; then
+    resolved="$(resolve_wallpaper "$requested")" || die "wallpaper not found or unsupported: $requested"
+  else
+    if ! resolved="$(resolve_wallpaper)"; then
+      log "no wallpaper found. add $DEFAULT_WALLPAPER or any supported image to $MANAGED_WALL_DIR"
+      exit 0
+    fi
+  fi
 
-  write_hyprpaper_conf "$managed_wall"
-  run_matugen "$managed_wall"
-  reload_runtime "$managed_wall"
-
-  ok "Applied wallpaper: $managed_wall"
+  managed="$(normalize_wallpaper "$resolved")"
+  printf '%s\n' "$managed" > "$STATE_FILE"
+  write_hyprpaper_conf "$managed"
+  run_matugen "$managed"
+  sync_greeter_assets "$managed"
+  reload_runtime "$managed"
+  log "applied wallpaper: $managed"
 }
 
 main "$@"

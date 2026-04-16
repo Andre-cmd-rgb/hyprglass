@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec kitty --class hyprglass-float --title "hyprglass :: network"   sh -lc 'nmtui'

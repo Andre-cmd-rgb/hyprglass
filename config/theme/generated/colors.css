@@ -17,24 +17,3 @@
 @define-color error_container #5b1f1b;
 @define-color tertiary_container #183a42;
 @define-color primary_container #263a63;
-
-:root {
-  --primary: #7aa2ff;
-  --secondary: #9ec1ff;
-  --tertiary: #89dceb;
-  --surface: #16181f;
-  --surface-container: #1e212b;
-  --surface-container-high: #282c37;
-  --background: #111318;
-  --outline: #70788a;
-  --outline-variant: #495061;
-  --on-primary: #0b1020;
-  --on-surface: #f2f2f7;
-  --on-surface-variant: #b8bfcc;
-  --error: #ff5f57;
-  --secondary-container: #23324a;
-  --on-secondary-container: #eef3ff;
-  --error-container: #5b1f1b;
-  --tertiary-container: #183a42;
-  --primary-container: #263a63;
-}

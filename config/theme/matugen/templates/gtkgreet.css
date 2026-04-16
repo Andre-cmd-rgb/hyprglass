@@ -1,0 +1,49 @@
+window {
+  background: transparent;
+}
+
+box#body {
+  background-color: {{ colors.surface_container.default.hex_alpha | set_alpha: 0.76 }};
+  color: {{ colors.on_surface.default.hex }};
+  border: 1px solid {{ colors.outline_variant.default.hex_alpha | set_alpha: 0.82 }};
+  border-radius: 24px;
+  padding: 34px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+label {
+  color: {{ colors.on_surface.default.hex }};
+}
+
+entry,
+combobox,
+button {
+  min-height: 42px;
+  border-radius: 16px;
+  border: 1px solid {{ colors.outline_variant.default.hex_alpha | set_alpha: 0.72 }};
+  background-color: {{ colors.surface.default.hex_alpha | set_alpha: 0.66 }};
+  color: {{ colors.on_surface.default.hex }};
+  box-shadow: none;
+}
+
+entry {
+  padding: 10px 14px;
+}
+
+button {
+  padding: 10px 18px;
+}
+
+button:hover,
+button:focus,
+combobox:hover,
+combobox:focus,
+entry:focus {
+  background-color: {{ colors.primary.default.hex_alpha | set_alpha: 0.14 }};
+  border-color: {{ colors.primary.default.hex_alpha | set_alpha: 0.78 }};
+  color: {{ colors.primary.default.hex }};
+}
+
+separator {
+  background-color: {{ colors.outline_variant.default.hex_alpha | set_alpha: 0.48 }};
+}

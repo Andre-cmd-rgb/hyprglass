@@ -3,16 +3,18 @@
   secondary: {{ colors.secondary.default.hex }};
   tertiary: {{ colors.tertiary.default.hex }};
   surface: {{ colors.surface.default.hex }};
-  surface_container: {{ colors.surface_container.default.hex }};
-  surface_container_high: {{ colors.surface_container_high.default.hex }};
+  surface-container: {{ colors.surface_container.default.hex }};
+  surface-container-high: {{ colors.surface_container_high.default.hex }};
   background: {{ colors.background.default.hex }};
   outline: {{ colors.outline.default.hex }};
-  outline_variant: {{ colors.outline_variant.default.hex }};
-  on_primary: {{ colors.on_primary.default.hex }};
-  on_surface: {{ colors.on_surface.default.hex }};
-  on_surface_variant: {{ colors.on_surface_variant.default.hex }};
+  outline-variant: {{ colors.outline_variant.default.hex }};
+  on-primary: {{ colors.on_primary.default.hex }};
+  on-surface: {{ colors.on_surface.default.hex }};
+  on-surface-variant: {{ colors.on_surface_variant.default.hex }};
   error: {{ colors.error.default.hex }};
-  surface_alpha: {{ colors.surface.default.hex }}D9;
-  surface_container_alpha: {{ colors.surface_container.default.hex }}A6;
-  surface_overlay: {{ colors.primary.default.hex }}26;
+  surface-alpha: {{ colors.surface.default.hex_alpha | set_alpha: 0.93 }};
+  surface-container-alpha: {{ colors.surface_container.default.hex_alpha | set_alpha: 0.86 }};
+  surface-container-high-alpha: {{ colors.surface_container_high.default.hex_alpha | set_alpha: 0.92 }};
+  surface-overlay: {{ colors.primary.default.hex_alpha | set_alpha: 0.18 }};
+  border-soft: {{ colors.outline_variant.default.hex_alpha | set_alpha: 0.82 }};
 }

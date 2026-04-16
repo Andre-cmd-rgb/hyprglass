@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 if pgrep -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1; then
-  pkill -RTMIN+1 -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || pkill -f '(^|/)nwg-dock-hyprland( |$)'
+  pkill -RTMIN+1 -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || pkill -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || true
 else
   "$HOME/.local/bin/launch-dock" >/dev/null 2>&1 &
 fi

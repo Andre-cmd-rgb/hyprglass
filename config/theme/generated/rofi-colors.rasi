@@ -3,16 +3,18 @@
   secondary: #9ec1ff;
   tertiary: #89dceb;
   surface: #16181f;
-  surface_container: #1e212b;
-  surface_container_high: #282c37;
+  surface-container: #1e212b;
+  surface-container-high: #282c37;
   background: #111318;
   outline: #70788a;
-  outline_variant: #495061;
-  on_primary: #0b1020;
-  on_surface: #f2f2f7;
-  on_surface_variant: #b8bfcc;
+  outline-variant: #495061;
+  on-primary: #0b1020;
+  on-surface: #f2f2f7;
+  on-surface-variant: #b8bfcc;
   error: #ff5f57;
-  surface_alpha: #16181fD9;
-  surface_container_alpha: #1e212bA6;
-  surface_overlay: #7aa2ff26;
+  surface-alpha: #16181FED;
+  surface-container-alpha: #1E212BDB;
+  surface-container-high-alpha: #282C37EB;
+  surface-overlay: #7AA2FF2E;
+  border-soft: #495061D1;
 }

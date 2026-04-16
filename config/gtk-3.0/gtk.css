@@ -36,6 +36,7 @@ headerbar button.titlebutton {
   color: transparent;
   border: none;
   box-shadow: none;
+  opacity: 1.0;
 }
 
 headerbar button.titlebutton.close {
@@ -70,5 +71,5 @@ button.suggested-action {
 }
 
 headerbar button.titlebutton:hover {
-  filter: brightness(1.06);
+  opacity: 0.88;
 }

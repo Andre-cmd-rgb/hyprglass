@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-rofi -show drun -modi "drun,run,window" -config "$HOME/.config/rofi/config.rasi"
+
+exec rofi -show drun -modi 'drun,run,window' -config "$HOME/.config/rofi/config.rasi"

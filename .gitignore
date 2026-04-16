@@ -1,0 +1,12 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Runtime state generated after install
+config/theme/current_wallpaper
+config/theme/generated/runtime-*.tmp
+
+# Local test artifacts
+*.bak
+*.tmp

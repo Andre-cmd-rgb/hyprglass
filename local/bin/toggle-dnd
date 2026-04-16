@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if ! command -v makoctl >/dev/null 2>&1; then
-  exit 0
-fi
+
+command -v makoctl >/dev/null 2>&1 || exit 0
 makoctl mode -t do-not-disturb >/dev/null

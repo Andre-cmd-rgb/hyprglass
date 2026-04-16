@@ -1,5 +1,6 @@
 [config]
 mode = "dark"
+caching = true
 
 [templates.colors_css]
 input_path = '~/.config/theme/matugen/templates/colors.css'
@@ -28,3 +29,7 @@ output_path = '~/.config/theme/generated/nwg-dock.css'
 [templates.palette_json]
 input_path = '~/.config/theme/matugen/templates/colors.json'
 output_path = '~/.config/theme/generated/colors.json'
+
+[templates.gtkgreet]
+input_path = '~/.config/theme/matugen/templates/gtkgreet.css'
+output_path = '~/.config/theme/generated/gtkgreet.css'

@@ -1,0 +1,49 @@
+window {
+  background: transparent;
+}
+
+box#body {
+  background-color: rgba(30, 33, 43, 0.76);
+  color: #f2f2f7;
+  border: 1px solid rgba(73, 80, 97, 0.82);
+  border-radius: 24px;
+  padding: 34px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+label {
+  color: #f2f2f7;
+}
+
+entry,
+combobox,
+button {
+  min-height: 42px;
+  border-radius: 16px;
+  border: 1px solid rgba(73, 80, 97, 0.72);
+  background-color: rgba(22, 24, 31, 0.66);
+  color: #f2f2f7;
+  box-shadow: none;
+}
+
+entry {
+  padding: 10px 14px;
+}
+
+button {
+  padding: 10px 18px;
+}
+
+button:hover,
+button:focus,
+combobox:hover,
+combobox:focus,
+entry:focus {
+  background-color: rgba(122, 162, 255, 0.14);
+  border-color: rgba(122, 162, 255, 0.78);
+  color: #7aa2ff;
+}
+
+separator {
+  background-color: rgba(73, 80, 97, 0.48);
+}

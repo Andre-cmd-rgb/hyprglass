@@ -3,7 +3,11 @@
   font-size: 14px;
 }
 
-window, box, button { background: transparent; }
+window,
+box,
+button {
+  background: transparent;
+}
 
 #dock {
   padding: 10px 12px;
