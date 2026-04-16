@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_ROOT="$HOME/.config-backups/hyprland-shell"
+BACKUP_ROOT="$HOME/.config-backups/hyprglass"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
 
@@ -113,16 +113,28 @@ backup_existing() {
 }
 
 deploy_files() {
-  info "Deploying dotfiles"
+  info "Deploying repo files"
 
-  mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/Pictures/Wallpapers/hyprland-shell"
+  mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/Pictures/Wallpapers/hyprglass"
 
-  rsync -a --delete "$REPO_DIR/.config/" "$HOME/.config/"
-  rsync -a "$REPO_DIR/.local/bin/" "$HOME/.local/bin/"
-  rsync -a "$REPO_DIR/wallpapers/" "$HOME/Pictures/Wallpapers/hyprland-shell/"
+  local config_src="$REPO_DIR/config"
+  [[ -d "$REPO_DIR/.config" ]] && config_src="$REPO_DIR/.config"
+  local local_bin_src="$REPO_DIR/local/bin"
+  [[ -d "$REPO_DIR/.local/bin" ]] && local_bin_src="$REPO_DIR/.local/bin"
+
+  if [[ ! -d "$config_src" || ! -d "$local_bin_src" ]]; then
+    fail "Repo layout invalid. Expected config/ and local/bin/ (or .config/ and .local/bin/)."
+    exit 1
+  fi
+
+  rsync -a --delete "$config_src/" "$HOME/.config/"
+  rsync -a "$local_bin_src/" "$HOME/.local/bin/"
+  if [[ -d "$REPO_DIR/wallpapers" ]]; then
+    rsync -a "$REPO_DIR/wallpapers/" "$HOME/Pictures/Wallpapers/hyprglass/"
+  fi
 
   chmod +x "$HOME/.local/bin/"*
-  ok "Dotfiles deployed"
+  ok "Repo files deployed"
 }
 
 configure_portals() {
@@ -153,16 +165,32 @@ enable_services() {
 }
 
 apply_theme() {
-  info "Generating initial theme files"
-  "$HOME/.local/bin/theme-apply" "$HOME/Pictures/Wallpapers/hyprland-shell/default.png"
-  ok "Initial theme generated"
+  local default_wall="$HOME/Pictures/Wallpapers/hyprglass/default.png"
+
+  if [[ -f "$default_wall" ]]; then
+    info "Generating initial theme files from default.png"
+    "$HOME/.local/bin/theme-apply" "$default_wall"
+    ok "Initial theme generated"
+    return
+  fi
+
+  if find "$HOME/Pictures/Wallpapers/hyprglass" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | grep -q .; then
+    info "Generating initial theme files from the first available wallpaper"
+    first_wall="$(find "$HOME/Pictures/Wallpapers/hyprglass" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort | head -n1)"
+    "$HOME/.local/bin/theme-apply" "$first_wall"
+    ok "Initial theme generated"
+    return
+  fi
+
+  warn "No wallpaper found yet. Add wallpapers/default.png to the repo or copy one to ~/Pictures/Wallpapers/hyprglass/ later."
+  warn "Skipping initial wallpaper/theme generation. Fallback generated theme files remain in place."
 }
 
 print_next_steps() {
   cat <<EOF
 
 ============================================================
-hyprland-shell installed
+hyprglass installed
 ============================================================
 
 Backup:
@@ -176,6 +204,9 @@ First login:
 
 To apply your own wallpaper:
   ~/.local/bin/theme-apply /absolute/path/to/wallpaper.png
+
+Recommended default wallpaper path:
+  ~/Pictures/Wallpapers/hyprglass/default.png
 
 Notes:
   - Default scale is 2x, exactly as configured in ~/.config/hypr/conf.d/00-monitors.conf.

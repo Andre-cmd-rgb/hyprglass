@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WALLPAPER_INPUT="${1:-$HOME/Pictures/Wallpapers/hyprland-shell/default.png}"
+DEFAULT_WALL_DIR="$HOME/Pictures/Wallpapers/hyprglass"
+DEFAULT_WALLPAPER="$DEFAULT_WALL_DIR/default.png"
+WALLPAPER_INPUT="${1:-$DEFAULT_WALLPAPER}"
 WALLPAPER="$(realpath -m "$WALLPAPER_INPUT")"
 
 THEME_DIR="$HOME/.config/theme"
@@ -9,13 +11,17 @@ MATUGEN_CONFIG="$THEME_DIR/matugen/config.toml"
 GENERATED_DIR="$THEME_DIR/generated"
 HYPRPAPER_CONF="$HOME/.config/hypr/hyprpaper.conf"
 WALLPAPER_STATE="$THEME_DIR/current_wallpaper"
-DEFAULT_WALL_DIR="$HOME/Pictures/Wallpapers/hyprland-shell"
 
 mkdir -p "$GENERATED_DIR" "$DEFAULT_WALL_DIR" "$HOME/.config/hypr"
 
 if [[ ! -f "$WALLPAPER" ]]; then
-  echo "theme-apply: wallpaper not found: $WALLPAPER" >&2
-  exit 1
+  mapfile -t available_walls < <(find "$DEFAULT_WALL_DIR" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort)
+  if (( ${#available_walls[@]} > 0 )); then
+    WALLPAPER="${available_walls[0]}"
+  else
+    echo "theme-apply: no wallpaper found. Expected $DEFAULT_WALLPAPER or any image in $DEFAULT_WALL_DIR" >&2
+    exit 0
+  fi
 fi
 
 printf '%s

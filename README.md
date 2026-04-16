@@ -1,4 +1,4 @@
-# hyprland-shell
+# hyprglass
 
 A production-ready, modular Hyprland environment for fresh Arch Linux installs.
 
@@ -54,7 +54,7 @@ Utilities:
 
 ```text
 .
-├── .config
+├── config
 │   ├── btop
 │   ├── cava
 │   ├── fastfetch
@@ -70,12 +70,19 @@ Utilities:
 │   │   └── matugen
 │   │       └── templates
 │   └── waybar
-├── .local
+├── local
 │   └── bin
 ├── install.sh
 ├── wallpapers
 └── README.md
 ```
+
+
+Repo directories are intentionally **not hidden** in GitHub:
+- `config/` is deployed to `~/.config/`
+- `local/bin/` is deployed to `~/.local/bin/`
+
+That keeps the repository clean to browse on GitHub without changing the installed Linux paths.
 
 ## Architecture
 
@@ -136,10 +143,16 @@ GTK portal backend handles file chooser, OpenURI and Print fallback.
 On a fresh Arch install:
 
 ```bash
-git clone <your-repo-url> hyprland-shell
-cd hyprland-shell
+git clone https://github.com/Andre-cmd-rgb/hyprglass.git
+cd hyprglass
 chmod +x install.sh
 ./install.sh
+```
+
+One-line install:
+
+```bash
+git clone https://github.com/Andre-cmd-rgb/hyprglass.git && cd hyprglass && chmod +x install.sh && ./install.sh
 ```
 
 The installer:
@@ -149,7 +162,30 @@ The installer:
 - backs up existing config
 - deploys the repo
 - writes portal preferences
-- generates the first theme from the default wallpaper
+- generates the first theme from `wallpapers/default.png` when present, otherwise keeps the fallback generated theme files until you add a wallpaper
+
+## Default wallpaper
+
+This repo is designed to use your own default wallpaper.
+
+Preferred repo path:
+
+```text
+wallpapers/default.png
+```
+
+If you do not include it before running the installer, the setup still installs cleanly.
+You can add it later to:
+
+```text
+~/Pictures/Wallpapers/hyprglass/default.png
+```
+
+and then run:
+
+```bash
+~/.local/bin/theme-apply ~/Pictures/Wallpapers/hyprglass/default.png
+```
 
 ## Keybindings
 

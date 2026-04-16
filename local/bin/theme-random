@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WALL_DIR="${1:-$HOME/Pictures/Wallpapers/hyprland-shell}"
+WALL_DIR="${1:-$HOME/Pictures/Wallpapers/hyprglass}"
 
 mapfile -t walls < <(find "$WALL_DIR" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \))
 if [[ ${#walls[@]} -eq 0 ]]; then
