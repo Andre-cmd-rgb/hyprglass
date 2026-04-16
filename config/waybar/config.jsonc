@@ -1,0 +1,124 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 44,
+  "spacing": 8,
+  "margin-top": 10,
+  "margin-left": 14,
+  "margin-right": 14,
+
+  "modules-left": [
+    "custom/launcher",
+    "hyprland/workspaces",
+    "hyprland/window"
+  ],
+  "modules-center": [
+    "clock"
+  ],
+  "modules-right": [
+    "custom/dnd",
+    "pulseaudio",
+    "backlight",
+    "network",
+    "bluetooth",
+    "battery",
+    "tray"
+  ],
+
+  "custom/launcher": {
+    "format": "󰣇",
+    "tooltip": false,
+    "on-click": "~/.local/bin/launch-rofi"
+  },
+
+  "hyprland/workspaces": {
+    "disable-scroll": false,
+    "all-outputs": true,
+    "format": "{icon}",
+    "format-icons": {
+      "active": "",
+      "default": "",
+      "empty": ""
+    },
+    "persistent-workspaces": {
+      "*": 10
+    }
+  },
+
+  "hyprland/window": {
+    "format": "{}",
+    "separate-outputs": true,
+    "max-length": 56,
+    "rewrite": {
+      "(.*) — Mozilla Firefox": "$1",
+      "(.*) - Kitty": "$1",
+      "(.*) - Thunar": "$1"
+    }
+  },
+
+  "clock": {
+    "format": "{:%a %d %b  %H:%M}",
+    "tooltip-format": "<big>{:%A, %d %B %Y}</big>\n<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "mode-mon-col": 3,
+      "weeks-pos": "right"
+    }
+  },
+
+  "custom/dnd": {
+    "return-type": "json",
+    "exec": "~/.local/bin/mako-status",
+    "interval": 2,
+    "on-click": "~/.local/bin/toggle-dnd",
+    "format": "{}"
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-muted": "󰝟 mute",
+    "format-icons": {
+      "default": ["󰕿", "󰖀", "󰕾"]
+    },
+    "on-click": "pavucontrol"
+  },
+
+  "backlight": {
+    "format": "󰃠 {percent}%",
+    "tooltip": false
+  },
+
+  "network": {
+    "format-wifi": "󰖩 {essid}",
+    "format-ethernet": "󰈀 ethernet",
+    "format-disconnected": "󰖪 offline",
+    "tooltip-format-wifi": "{ipaddr}/{cidr}\n{signalStrength}% signal",
+    "tooltip-format-ethernet": "{ipaddr}/{cidr}",
+    "on-click": "nm-connection-editor"
+  },
+
+  "bluetooth": {
+    "format": "",
+    "format-disabled": " off",
+    "format-connected": " {device_alias}",
+    "tooltip-format": "{device_enumerate}",
+    "on-click": "blueman-manager"
+  },
+
+  "battery": {
+    "states": {
+      "good": 80,
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": "󰂄 {capacity}%",
+    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+  },
+
+  "tray": {
+    "icon-size": 16,
+    "spacing": 10
+  }
+}

@@ -1,0 +1,74 @@
+@import url("../theme/generated/colors.css");
+
+window,
+dialog,
+popover,
+headerbar,
+.background,
+.view,
+.sidebar,
+menubar,
+toolbar {
+  border-radius: 14px;
+}
+
+headerbar {
+  min-height: 40px;
+  padding: 4px 8px;
+  background: alpha(@surface_container, 0.92);
+  color: @on_surface;
+  border-bottom: 1px solid alpha(@outline_variant, 0.70);
+  box-shadow: none;
+}
+
+headerbar .title {
+  color: @on_surface;
+  font-weight: 600;
+}
+
+headerbar button.titlebutton {
+  min-width: 13px;
+  min-height: 13px;
+  padding: 0;
+  margin: 0 5px;
+  border-radius: 999px;
+  background: transparent;
+  color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+headerbar button.titlebutton.close {
+  background: #ff5f57;
+}
+
+headerbar button.titlebutton.maximize {
+  background: #28c840;
+}
+
+headerbar button.titlebutton.minimize {
+  background: #febc2e;
+}
+
+menu,
+popover,
+.menu,
+.context-menu {
+  background: alpha(@surface_container, 0.96);
+  color: @on_surface;
+  border: 1px solid alpha(@outline_variant, 0.75);
+  border-radius: 14px;
+}
+
+button {
+  border-radius: 12px;
+}
+
+button.suggested-action {
+  background: @primary;
+  color: @on_primary;
+}
+
+headerbar button.titlebutton:hover {
+  filter: brightness(1.06);
+}

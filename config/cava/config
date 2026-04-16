@@ -1,0 +1,27 @@
+[general]
+bars = 12
+framerate = 60
+autosens = 1
+sensitivity = 100
+
+[input]
+method = pulse
+source = auto
+
+[output]
+method = ncurses
+channels = mono
+mono_option = average
+reverse = 0
+
+[smoothing]
+monstercat = 1
+waves = 1
+noise_reduction = 30%
+
+[color]
+gradient = 1
+gradient_count = 3
+gradient_color_1 = '#7aa2ff'
+gradient_color_2 = '#a78bfa'
+gradient_color_3 = '#7bdcb5'

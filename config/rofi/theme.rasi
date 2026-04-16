@@ -1,0 +1,100 @@
+@import "../theme/generated/rofi-colors.rasi"
+
+* {
+  font: "JetBrainsMono Nerd Font 12";
+  bg0: @surface_alpha;
+  bg1: @surface_container_alpha;
+  fg0: @on_surface;
+  fg1: @on_surface_variant;
+  accent: @primary;
+  urgent: @error;
+  border-color: @outline_variant;
+  border-radius: 20px;
+}
+
+window {
+  transparency: "real";
+  location: center;
+  anchor: center;
+  fullscreen: false;
+  width: 34%;
+  padding: 20px;
+  border: 1px;
+  border-radius: 20px;
+  background-color: @bg0;
+  border-color: @border-color;
+}
+
+mainbox {
+  spacing: 12px;
+  children: [ inputbar, message, listview ];
+}
+
+inputbar {
+  padding: 12px 14px;
+  spacing: 10px;
+  border: 0;
+  border-radius: 16px;
+  background-color: @bg1;
+  text-color: @fg0;
+  children: [ prompt, entry ];
+}
+
+prompt {
+  text-color: @accent;
+  str: "";
+}
+
+entry {
+  text-color: @fg0;
+  placeholder: "search";
+  placeholder-color: @fg1;
+}
+
+message {
+  enabled: false;
+}
+
+listview {
+  lines: 8;
+  columns: 1;
+  fixed-height: false;
+  dynamic: true;
+  cycle: true;
+  scrollbar: false;
+  spacing: 6px;
+}
+
+element {
+  padding: 10px 12px;
+  spacing: 10px;
+  border: 0;
+  border-radius: 16px;
+  background-color: transparent;
+  text-color: @fg0;
+}
+
+element normal.normal {
+  background-color: transparent;
+  text-color: @fg0;
+}
+
+element selected.normal {
+  background-color: @surface_overlay;
+  text-color: @accent;
+}
+
+element urgent.normal {
+  background-color: transparent;
+  text-color: @urgent;
+}
+
+element-icon {
+  size: 24px;
+  border: 0;
+}
+
+element-text {
+  vertical-align: 0.5;
+  text-color: inherit;
+}

@@ -1,0 +1,36 @@
+* {
+  font-family: "JetBrainsMono Nerd Font", "Noto Sans", sans-serif;
+  font-size: 14px;
+}
+
+window, box, button { background: transparent; }
+
+#dock {
+  padding: 10px 12px;
+  border-radius: 22px;
+  background: alpha(#16181f, 0.84);
+  border: 1px solid alpha(#495061, 0.72);
+}
+
+button {
+  min-width: 46px;
+  min-height: 46px;
+  margin: 0 4px;
+  padding: 8px;
+  border-radius: 16px;
+  background: transparent;
+  color: #f2f2f7;
+  border: none;
+  box-shadow: none;
+}
+
+button:hover {
+  background: alpha(#7aa2ff, 0.12);
+  color: #7aa2ff;
+}
+
+button#launcher,
+button#active {
+  background: alpha(#7aa2ff, 0.14);
+  color: #7aa2ff;
+}

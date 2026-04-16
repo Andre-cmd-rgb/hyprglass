@@ -1,0 +1,40 @@
+* {
+  font-family: "{{ custom.font }}", "Noto Sans", sans-serif;
+  font-size: 14px;
+}
+
+window,
+box,
+button {
+  background: transparent;
+}
+
+#dock {
+  padding: 10px 12px;
+  border-radius: 22px;
+  background: alpha({{ colors.surface.default.hex }}, 0.84);
+  border: 1px solid alpha({{ colors.outline_variant.default.hex }}, 0.72);
+}
+
+button {
+  min-width: 46px;
+  min-height: 46px;
+  margin: 0 4px;
+  padding: 8px;
+  border-radius: 16px;
+  background: transparent;
+  color: {{ colors.on_surface.default.hex }};
+  border: none;
+  box-shadow: none;
+}
+
+button:hover {
+  background: alpha({{ colors.primary.default.hex }}, 0.12);
+  color: {{ colors.primary.default.hex }};
+}
+
+button#launcher,
+button#active {
+  background: alpha({{ colors.primary.default.hex }}, 0.14);
+  color: {{ colors.primary.default.hex }};
+}

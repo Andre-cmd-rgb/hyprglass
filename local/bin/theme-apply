@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WALLPAPER_INPUT="${1:-$HOME/Pictures/Wallpapers/hyprland-shell/default.png}"
+WALLPAPER="$(realpath -m "$WALLPAPER_INPUT")"
+
+THEME_DIR="$HOME/.config/theme"
+MATUGEN_CONFIG="$THEME_DIR/matugen/config.toml"
+GENERATED_DIR="$THEME_DIR/generated"
+HYPRPAPER_CONF="$HOME/.config/hypr/hyprpaper.conf"
+WALLPAPER_STATE="$THEME_DIR/current_wallpaper"
+DEFAULT_WALL_DIR="$HOME/Pictures/Wallpapers/hyprland-shell"
+
+mkdir -p "$GENERATED_DIR" "$DEFAULT_WALL_DIR" "$HOME/.config/hypr"
+
+if [[ ! -f "$WALLPAPER" ]]; then
+  echo "theme-apply: wallpaper not found: $WALLPAPER" >&2
+  exit 1
+fi
+
+printf '%s
+' "$WALLPAPER" > "$WALLPAPER_STATE"
+
+matugen -c "$MATUGEN_CONFIG" image "$WALLPAPER" -m dark
+
+cat > "$HYPRPAPER_CONF" <<EOF
+ipc = true
+splash = false
+
+wallpaper {
+    monitor =
+    path = $WALLPAPER
+    fit_mode = cover
+}
+EOF
+
+if pgrep -x hyprpaper >/dev/null 2>&1 && command -v hyprctl >/dev/null 2>&1; then
+  hyprctl hyprpaper reload ,"$WALLPAPER",cover >/dev/null 2>&1 || true
+  hyprctl hyprpaper unload unused >/dev/null 2>&1 || true
+fi
+
+if pgrep -x waybar >/dev/null 2>&1; then
+  pkill -USR2 waybar >/dev/null 2>&1 || true
+fi
+
+if command -v makoctl >/dev/null 2>&1; then
+  makoctl reload >/dev/null 2>&1 || true
+fi
+
+if command -v kitty >/dev/null 2>&1; then
+  kitten @ set-colors -a "$HOME/.config/theme/generated/kitty-theme.conf" >/dev/null 2>&1 || true
+fi
+
+if pgrep -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1; then
+  pkill -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || true
+  "$HOME/.local/bin/launch-dock" >/dev/null 2>&1 &
+fi
