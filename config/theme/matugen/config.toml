@@ -1,14 +1,6 @@
 [config]
 mode = "dark"
 
-[config.custom_keywords]
-font = "JetBrainsMono Nerd Font"
-radius = "16px"
-bar_radius = "16px"
-alpha_surface = "0.86"
-alpha_float = "0.93"
-
-
 [templates.colors_css]
 input_path = '~/.config/theme/matugen/templates/colors.css'
 output_path = '~/.config/theme/generated/colors.css'
