@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_ROOT="$HOME/.config-backups/hyprglass"
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
+umask 022
+
+readonly REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly BACKUP_ROOT="$HOME/.config-backups/hyprglass"
+readonly TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+readonly BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
 
 PACMAN_PKGS=(
   hyprland hyprpaper hyprpolkitagent
@@ -23,22 +25,32 @@ PACMAN_PKGS=(
 
 AUR_PKGS=()
 
-color() { printf '[%sm%s[0m
-' "$1" "$2"; }
+color() { printf '\033[%sm%s\033[0m\n' "$1" "$2"; }
 info()  { color "1;36" "[INFO] $*"; }
 ok()    { color "1;32" "[ OK ] $*"; }
 warn()  { color "1;33" "[WARN] $*"; }
 fail()  { color "1;31" "[FAIL] $*"; }
 
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
 require_not_root() {
-  if [[ "${EUID}" -eq 0 ]]; then
+  if [[ "$EUID" -eq 0 ]]; then
     fail "Run this installer as your normal user, not root."
     exit 1
   fi
 }
 
+require_arch() {
+  if ! command_exists pacman; then
+    fail "This installer expects an Arch-based system with pacman."
+    exit 1
+  fi
+}
+
 require_sudo() {
-  if ! command -v sudo >/dev/null 2>&1; then
+  if ! command_exists sudo; then
     fail "sudo is required."
     exit 1
   fi
@@ -46,20 +58,31 @@ require_sudo() {
 }
 
 install_yay_if_missing() {
-  if command -v yay >/dev/null 2>&1; then
+  if command_exists yay; then
     ok "yay already installed"
     return
   fi
 
   info "Installing yay"
-  local tmpdir
+  local tmpdir=""
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' RETURN
-  git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
-  (
+
+  if ! git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"; then
+    rm -rf -- "$tmpdir"
+    fail "Failed to clone yay from the AUR."
+    exit 1
+  fi
+
+  if ! (
     cd "$tmpdir/yay"
     makepkg -si --noconfirm
-  )
+  ); then
+    rm -rf -- "$tmpdir"
+    fail "Failed to build/install yay."
+    exit 1
+  fi
+
+  rm -rf -- "$tmpdir"
   ok "yay installed"
 }
 
@@ -67,9 +90,8 @@ install_packages() {
   info "Installing official packages"
   sudo pacman -Syu --noconfirm --needed "${PACMAN_PKGS[@]}"
 
-  install_yay_if_missing
-
   if (( ${#AUR_PKGS[@]} > 0 )); then
+    install_yay_if_missing
     info "Installing AUR packages"
     yay -S --noconfirm --needed "${AUR_PKGS[@]}"
   else
@@ -78,8 +100,6 @@ install_packages() {
 }
 
 backup_existing() {
-  mkdir -p "$BACKUP_DIR"
-
   local paths=(
     "$HOME/.config/hypr"
     "$HOME/.config/waybar"
@@ -102,14 +122,54 @@ backup_existing() {
     "$HOME/.local/bin/theme-random"
   )
 
+  local path rel parent copied_any=0
+
   info "Backing up existing configuration"
+
   for path in "${paths[@]}"; do
-    if [[ -e "$path" ]]; then
-      mkdir -p "$BACKUP_DIR$(dirname "${path#$HOME}")"
-      cp -a "$path" "$BACKUP_DIR${path#$HOME}"
+    if [[ -e "$path" || -L "$path" ]]; then
+      if (( copied_any == 0 )); then
+        mkdir -p "$BACKUP_DIR"
+        copied_any=1
+      fi
+
+      rel="${path#$HOME/}"
+      parent="$(dirname "$rel")"
+
+      mkdir -p "$BACKUP_DIR/$parent"
+      cp -a "$path" "$BACKUP_DIR/$rel"
     fi
   done
-  ok "Backup stored at $BACKUP_DIR"
+
+  if (( copied_any == 1 )); then
+    ok "Backup stored at $BACKUP_DIR"
+  else
+    ok "No existing managed configuration found to back up"
+  fi
+}
+
+sync_children() {
+  local src_root="$1"
+  local dest_root="$2"
+  local child dest
+
+  shopt -s nullglob dotglob
+
+  for child in "$src_root"/*; do
+    [[ -e "$child" || -L "$child" ]] || continue
+
+    dest="$dest_root/$(basename "$child")"
+
+    if [[ -d "$child" && ! -L "$child" ]]; then
+      mkdir -p "$dest"
+      rsync -a --delete "$child/" "$dest/"
+    else
+      mkdir -p "$dest_root"
+      rsync -a "$child" "$dest"
+    fi
+  done
+
+  shopt -u nullglob dotglob
 }
 
 deploy_files() {
@@ -118,36 +178,51 @@ deploy_files() {
   mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/Pictures/Wallpapers/hyprglass"
 
   local config_src="$REPO_DIR/config"
-  [[ -d "$REPO_DIR/.config" ]] && config_src="$REPO_DIR/.config"
   local local_bin_src="$REPO_DIR/local/bin"
+  local script
+
+  [[ -d "$REPO_DIR/.config" ]] && config_src="$REPO_DIR/.config"
   [[ -d "$REPO_DIR/.local/bin" ]] && local_bin_src="$REPO_DIR/.local/bin"
 
   if [[ ! -d "$config_src" || ! -d "$local_bin_src" ]]; then
-    fail "Repo layout invalid. Expected config/ and local/bin/ (or .config/ and .local/bin/)."
+    fail "Repo layout invalid. Expected config/ and local/bin/ or .config/ and .local/bin/."
     exit 1
   fi
 
-  rsync -a --delete "$config_src/" "$HOME/.config/"
-  rsync -a "$local_bin_src/" "$HOME/.local/bin/"
+  sync_children "$config_src" "$HOME/.config"
+  sync_children "$local_bin_src" "$HOME/.local/bin"
+
   if [[ -d "$REPO_DIR/wallpapers" ]]; then
-    rsync -a "$REPO_DIR/wallpapers/" "$HOME/Pictures/Wallpapers/hyprglass/"
+    sync_children "$REPO_DIR/wallpapers" "$HOME/Pictures/Wallpapers/hyprglass"
   fi
 
-  chmod +x "$HOME/.local/bin/"*
+  shopt -s nullglob
+  for script in "$local_bin_src"/*; do
+    [[ -f "$script" ]] || continue
+    chmod 0755 "$HOME/.local/bin/$(basename "$script")"
+  done
+  shopt -u nullglob
+
   ok "Repo files deployed"
 }
 
 configure_portals() {
   info "Writing portal preferences"
-  mkdir -p "$HOME/.config/xdg-desktop-portal"
-  cat > "$HOME/.config/xdg-desktop-portal/hyprland-portals.conf" <<'EOF'
+
+  local portal_dir="$HOME/.config/xdg-desktop-portal"
+  local portal_file="$portal_dir/hyprland-portals.conf"
+
+  mkdir -p "$portal_dir"
+
+  cat > "$portal_file" <<'EOF'
 [preferred]
 default=hyprland;gtk
 org.freedesktop.impl.portal.FileChooser=gtk
 org.freedesktop.impl.portal.OpenURI=gtk
 org.freedesktop.impl.portal.Print=gtk
 EOF
-  cp "$HOME/.config/xdg-desktop-portal/hyprland-portals.conf"      "$HOME/.config/xdg-desktop-portal/portals.conf"
+
+  install -m 0644 "$portal_file" "$portal_dir/portals.conf"
   ok "Portal configuration written"
 }
 
@@ -156,28 +231,48 @@ enable_services() {
   sudo systemctl enable --now NetworkManager.service
   sudo systemctl enable --now ModemManager.service
   sudo systemctl enable --now bluetooth.service
+  ok "System services enabled"
 
   info "Enabling user audio services"
-  systemctl --user daemon-reload || true
-  systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service || true
-
-  ok "Services enabled"
+  if systemctl --user daemon-reload >/dev/null 2>&1; then
+    if systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service >/dev/null 2>&1; then
+      ok "User audio services enabled"
+    else
+      warn "Could not enable user audio services in the current session."
+      warn "After logging into Hyprland, run:"
+      warn "  systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service"
+    fi
+  else
+    warn "No active user systemd session detected."
+    warn "After logging into Hyprland, run:"
+    warn "  systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service"
+  fi
 }
 
 apply_theme() {
-  local default_wall="$HOME/Pictures/Wallpapers/hyprglass/default.png"
+  local wall_dir="$HOME/Pictures/Wallpapers/hyprglass"
+  local theme_apply="$HOME/.local/bin/theme-apply"
+  local default_wall="$wall_dir/default.png"
+  local first_wall=""
+
+  if [[ ! -x "$theme_apply" ]]; then
+    warn "theme-apply is missing or not executable."
+    warn "Skipping initial wallpaper/theme generation."
+    return
+  fi
 
   if [[ -f "$default_wall" ]]; then
     info "Generating initial theme files from default.png"
-    "$HOME/.local/bin/theme-apply" "$default_wall"
+    "$theme_apply" "$default_wall"
     ok "Initial theme generated"
     return
   fi
 
-  if find "$HOME/Pictures/Wallpapers/hyprglass" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | grep -q .; then
+  first_wall="$(find "$wall_dir" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort | head -n 1)"
+
+  if [[ -n "$first_wall" ]]; then
     info "Generating initial theme files from the first available wallpaper"
-    first_wall="$(find "$HOME/Pictures/Wallpapers/hyprglass" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort | head -n1)"
-    "$HOME/.local/bin/theme-apply" "$first_wall"
+    "$theme_apply" "$first_wall"
     ok "Initial theme generated"
     return
   fi
@@ -219,6 +314,7 @@ EOF
 
 main() {
   require_not_root
+  require_arch
   require_sudo
   backup_existing
   install_packages
