@@ -1,52 +1,37 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 44,
-  "spacing": 8,
-  "margin-top": 10,
-  "margin-left": 14,
-  "margin-right": 14,
+  "height": 42,
+  "spacing": 4,
+  "margin-top": 8,
+  "margin-left": 10,
+  "margin-right": 10,
   "modules-left": [
     "custom/launcher",
-    "hyprland/workspaces",
     "hyprland/window"
   ],
   "modules-center": [
     "clock"
   ],
   "modules-right": [
+    "custom/network",
+    "custom/bluetooth",
     "custom/dnd",
     "pulseaudio",
     "backlight",
-    "network",
-    "bluetooth",
-    "battery",
-    "tray"
+    "battery"
   ],
   "custom/launcher": {
-    "format": "\udb82\udcc7",
+    "format": "󰣇",
     "tooltip": false,
     "on-click": "~/.local/bin/launch-rofi"
-  },
-  "hyprland/workspaces": {
-    "disable-scroll": false,
-    "all-outputs": true,
-    "format": "{icon}",
-    "format-icons": {
-      "active": "\uf192",
-      "default": "\uf111",
-      "empty": "\uf10c"
-    },
-    "persistent-workspaces": {
-      "*": 10
-    }
   },
   "hyprland/window": {
     "format": "{}",
     "separate-outputs": true,
-    "max-length": 56,
+    "max-length": 68,
     "rewrite": {
-      "(.*) \u2014 Mozilla Firefox": "$1",
+      "(.*) — Mozilla Firefox": "$1",
       "(.*) - Kitty": "$1",
       "(.*) - Thunar": "$1"
     }
@@ -60,6 +45,16 @@
       "weeks-pos": "right"
     }
   },
+  "custom/network": {
+    "format": "󰖩",
+    "tooltip": false,
+    "on-click": "~/.local/bin/launch-network"
+  },
+  "custom/bluetooth": {
+    "format": "󰂯",
+    "tooltip": false,
+    "on-click": "~/.local/bin/launch-bluetooth"
+  },
   "custom/dnd": {
     "return-type": "json",
     "exec": "~/.local/bin/mako-status",
@@ -69,34 +64,19 @@
   },
   "pulseaudio": {
     "format": "{icon} {volume}%",
-    "format-muted": "\udb81\udf5f mute",
+    "format-muted": "󰸈 mute",
     "format-icons": {
       "default": [
-        "\udb81\udd7f",
-        "\udb81\udd80",
-        "\udb81\udd7e"
+        "󰕿",
+        "󰖀",
+        "󰕾"
       ]
     },
     "on-click": "~/.local/bin/launch-audio"
   },
   "backlight": {
-    "format": "\udb80\udce0 {percent}%",
+    "format": "󰃟 {percent}%",
     "tooltip": false
-  },
-  "network": {
-    "format-wifi": "\udb81\udda9 {essid}",
-    "format-ethernet": "\udb80\ude00 ethernet",
-    "format-disconnected": "\udb81\uddaa offline",
-    "tooltip-format-wifi": "{ipaddr}/{cidr}\n{signalStrength}% signal",
-    "tooltip-format-ethernet": "{ipaddr}/{cidr}",
-    "on-click": "~/.local/bin/launch-network"
-  },
-  "bluetooth": {
-    "format": "\uf294",
-    "format-disabled": "\uf294 off",
-    "format-connected": "\uf294 {device_alias}",
-    "tooltip-format": "{device_enumerate}",
-    "on-click": "blueman-manager"
   },
   "battery": {
     "states": {
@@ -105,23 +85,19 @@
       "critical": 15
     },
     "format": "{icon} {capacity}%",
-    "format-charging": "\udb80\udc84 {capacity}%",
-    "format-plugged": "\udb80\udc84 {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": "󰂄 {capacity}%",
     "format-icons": [
-      "\udb80\udc7a",
-      "\udb80\udc7b",
-      "\udb80\udc7c",
-      "\udb80\udc7d",
-      "\udb80\udc7e",
-      "\udb80\udc7f",
-      "\udb80\udc80",
-      "\udb80\udc81",
-      "\udb80\udc82",
-      "\udb80\udc79"
+      "󰁺",
+      "󰁻",
+      "󰁼",
+      "󰁽",
+      "󰁾",
+      "󰁿",
+      "󰂀",
+      "󰂁",
+      "󰂂",
+      "󰁹"
     ]
-  },
-  "tray": {
-    "icon-size": 16,
-    "spacing": 10
   }
 }

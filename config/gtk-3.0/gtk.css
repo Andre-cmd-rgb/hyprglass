@@ -8,22 +8,34 @@ headerbar,
 .view,
 .sidebar,
 menubar,
-toolbar {
+toolbar,
+notebook,
+stack,
+box,
+scrolledwindow {
   border-radius: 14px;
+}
+
+window,
+dialog,
+.background {
+  background: alpha(@surface, 0.98);
+  color: @on_surface;
 }
 
 headerbar {
   min-height: 40px;
   padding: 4px 8px;
-  background: alpha(@surface_container, 0.92);
+  background: alpha(@surface_container, 0.94);
   color: @on_surface;
   border-bottom: 1px solid alpha(@outline_variant, 0.70);
   box-shadow: none;
 }
 
-headerbar .title {
+headerbar .title,
+headerbar .subtitle,
+label {
   color: @on_surface;
-  font-weight: 600;
 }
 
 headerbar button.titlebutton {
@@ -39,37 +51,107 @@ headerbar button.titlebutton {
   opacity: 1.0;
 }
 
-headerbar button.titlebutton.close {
-  background: #ff5f57;
+headerbar button.titlebutton.close { background: #ff5f57; }
+headerbar button.titlebutton.maximize { background: #28c840; }
+headerbar button.titlebutton.minimize { background: #febc2e; }
+headerbar button.titlebutton:hover { opacity: 0.88; }
+
+entry,
+searchentry,
+spinbutton,
+combobox,
+textview,
+text,
+button,
+menu,
+popover,
+.menu,
+.context-menu,
+calendar,
+list,
+row,
+sidebar,
+treeview.view {
+  border-radius: 14px;
 }
 
-headerbar button.titlebutton.maximize {
-  background: #28c840;
+entry,
+searchentry,
+spinbutton,
+combobox,
+textview,
+text,
+list,
+row,
+sidebar,
+treeview.view {
+  background: alpha(@surface_container, 0.82);
+  color: @on_surface;
+  border: 1px solid alpha(@outline_variant, 0.58);
+  box-shadow: none;
 }
 
-headerbar button.titlebutton.minimize {
-  background: #febc2e;
+entry,
+searchentry,
+spinbutton,
+combobox,
+button {
+  min-height: 36px;
+}
+
+entry,
+searchentry,
+spinbutton,
+combobox {
+  padding: 8px 12px;
+}
+
+button {
+  border-radius: 12px;
+  background: alpha(@surface_container_high, 0.80);
+  color: @on_surface;
+  border: 1px solid alpha(@outline_variant, 0.55);
+  box-shadow: none;
+}
+
+button:hover,
+button:focus,
+entry:focus,
+searchentry:focus,
+spinbutton:focus,
+combobox:focus {
+  background: alpha(@primary, 0.14);
+  border-color: alpha(@primary, 0.78);
+  color: @on_surface;
+}
+
+button.suggested-action {
+  background: @primary;
+  color: @on_primary;
+  border-color: transparent;
 }
 
 menu,
 popover,
 .menu,
 .context-menu {
-  background: alpha(@surface_container, 0.96);
+  background: alpha(@surface_container, 0.97);
   color: @on_surface;
   border: 1px solid alpha(@outline_variant, 0.75);
-  border-radius: 14px;
 }
 
-button {
-  border-radius: 12px;
+menubar,
+toolbar,
+notebook > header,
+paned > separator,
+separator {
+  background: transparent;
 }
 
-button.suggested-action {
-  background: @primary;
-  color: @on_primary;
-}
-
-headerbar button.titlebutton:hover {
-  opacity: 0.88;
+row:selected,
+list row:selected,
+treeview.view:selected,
+.sidebar row:selected {
+  background: alpha(@primary, 0.16);
+  color: @on_surface;
 }

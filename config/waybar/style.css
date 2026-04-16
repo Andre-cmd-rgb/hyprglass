@@ -4,7 +4,7 @@
   border: none;
   border-radius: 0;
   font-family: "JetBrainsMono Nerd Font", "Noto Sans", sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   min-height: 0;
 }
 
@@ -17,106 +17,89 @@ window#waybar {
 .modules-center,
 .modules-right {
   margin: 0;
-  padding: 4px 8px;
-  background: alpha(@surface, 0.84);
-  border: 1px solid alpha(@outline_variant, 0.72);
+  padding: 4px 7px;
+  background: alpha(@surface, 0.88);
+  border: 1px solid alpha(@outline_variant, 0.74);
   border-radius: 18px;
 }
 
 .modules-left {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .modules-center {
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .modules-right {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 #custom-launcher,
 #clock,
 #pulseaudio,
-#network,
-#bluetooth,
 #battery,
 #backlight,
-#tray,
 #custom-dnd,
-#window,
-#workspaces {
-  margin: 0 4px;
-  padding: 0 10px;
+#custom-network,
+#custom-bluetooth,
+#window {
+  margin: 0 1px;
+  padding: 0 8px;
   color: @on_surface;
-  border-radius: 13px;
+  border-radius: 12px;
   transition: all 160ms ease;
 }
 
 #custom-launcher {
   color: @primary;
-  font-size: 18px;
-  padding-left: 12px;
-  padding-right: 12px;
+  font-size: 17px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 #clock {
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
-#workspaces button {
-  padding: 0 6px;
-  margin: 0 1px;
-  color: alpha(@on_surface, 0.60);
-  border-radius: 999px;
-  background: transparent;
-  transition: all 160ms ease;
+#window {
+  color: alpha(@on_surface, 0.94);
+  padding-right: 10px;
 }
 
-#workspaces button.active {
-  color: @primary;
-  background: alpha(@primary, 0.12);
+#custom-network,
+#custom-bluetooth {
+  font-size: 15px;
+  font-weight: 700;
+  color: alpha(@on_surface, 0.90);
+  padding-left: 7px;
+  padding-right: 7px;
 }
 
-#workspaces button:hover,
 #custom-launcher:hover,
 #clock:hover,
 #pulseaudio:hover,
-#network:hover,
-#bluetooth:hover,
 #battery:hover,
 #backlight:hover,
-#custom-dnd:hover {
+#custom-dnd:hover,
+#custom-network:hover,
+#custom-bluetooth:hover {
   background: alpha(@primary, 0.10);
   color: @primary;
 }
 
-#window {
-  color: alpha(@on_surface, 0.92);
-}
-
 #battery.warning,
 #battery.critical,
-#network.disconnected,
 #pulseaudio.muted {
   color: @error;
 }
 
-#tray > .passive {
-  -gtk-icon-effect: dim;
-}
-
-#tray > .needs-attention {
-  -gtk-icon-effect: highlight;
-  background: alpha(@error, 0.14);
-  border-radius: 10px;
-}
-
 tooltip {
-  background: alpha(@surface_container, 0.96);
+  background: alpha(@surface_container, 0.97);
   border: 1px solid alpha(@outline_variant, 0.85);
   border-radius: 14px;
   color: @on_surface;

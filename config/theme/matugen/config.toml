@@ -22,10 +22,6 @@ output_path = '~/.config/theme/generated/kitty-theme.conf'
 input_path = '~/.config/theme/matugen/templates/mako.conf'
 output_path = '~/.config/mako/config'
 
-[templates.dock]
-input_path = '~/.config/theme/matugen/templates/nwg-dock.css'
-output_path = '~/.config/theme/generated/nwg-dock.css'
-
 [templates.palette_json]
 input_path = '~/.config/theme/matugen/templates/colors.json'
 output_path = '~/.config/theme/generated/colors.json'

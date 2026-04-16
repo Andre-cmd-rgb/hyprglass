@@ -168,12 +168,6 @@ reload_runtime() {
     kitten @ set-colors -a "$GENERATED_DIR/kitty-theme.conf" >/dev/null 2>&1 || true
   fi
 
-  if pgrep -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1; then
-    pkill -f '(^|/)nwg-dock-hyprland( |$)' >/dev/null 2>&1 || true
-    if [[ -x "$HOME/.local/bin/launch-dock" ]]; then
-      "$HOME/.local/bin/launch-dock" >/dev/null 2>&1 &
-    fi
-  fi
 }
 
 main() {

@@ -1,3 +1,31 @@
+## 1.4.2
+
+- fixed Nvidia open-driver removal so installer no longer aborts when only one open package is installed
+- restored dedicated Waybar network and Bluetooth glyph modules
+- switched Waybar Wi-Fi launcher to Impala directly
+- added iwd package for Impala-based Wi-Fi management
+
+## 1.4.0
+
+- removed the dock from the default product build
+- removed workspace indicators plus Wi-Fi/Bluetooth clutter from the top bar
+- tightened Waybar spacing and kept only the active window title on the left
+- cleaned GTK app styling for a more consistent rounded dark look
+- kept the default scale at 1.67
+
+## 1.3.3
+
+- fixed greetd asset preparation on systems where the `greeter` user/group did not already exist
+- fixed greetd config generation for the graphical logout greeter path
+- ensured the installer removes `nvidia-open` / `nvidia-open-dkms` before installing the proprietary `nvidia-dkms` path
+
+# Changelog
+
+## 1.3.2
+- Switched default monitor scale to 1.67.
+- Fixed nwg-dock-hyprland stylesheet path handling by generating ~/.config/nwg-dock-hyprland/style.css and using relative style lookup.
+- Added tracked nwg-dock-hyprland config directory so installs stay consistent.
+
 ## 1.3.0
 
 - switched the login flow to greetd + gtkgreet with automatic Hyprland start on boot and a graphical greeter after logout

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec kitty --class hyprglass-float --title "hyprglass :: network"   sh -lc 'nmtui'
+if command -v impala >/dev/null 2>&1; then
+  exec kitty --class hyprglass-float --title "hyprglass :: wifi" sh -lc 'impala || { printf "impala could not start a Wi-Fi session.\n\nIt requires iwd to manage Wi-Fi.\nIf NetworkManager is currently handling Wi-Fi, impala will not work until you switch Wi-Fi management to iwd.\n\nPress Enter to close..."; read -r _; }'
+fi
+
+exec kitty --class hyprglass-float --title "hyprglass :: wifi" sh -lc 'printf "impala is not installed.\nInstall it with: sudo pacman -S impala iwd\n\nPress Enter to close..."; read -r _'

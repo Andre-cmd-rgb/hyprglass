@@ -23,7 +23,6 @@ This is not a personal dump of random dotfiles. It is a productized shell layout
 - Rofi
 - Mako
 - Kitty
-- nwg-dock-hyprland
 - Thunar
 
 ### Theming
@@ -32,7 +31,7 @@ This is not a personal dump of random dotfiles. It is a productized shell layout
 - `theme-apply` as the runtime glue script
 
 ### System integration
-- NetworkManager + network-manager-applet
+- NetworkManager
 - ModemManager
 - PipeWire + WirePlumber
 - BlueZ + Blueman
@@ -102,7 +101,7 @@ wallpaper
   -> ~/.local/bin/theme-apply
   -> matugen templates
   -> ~/.config/theme/generated/*
-  -> Hyprland / Waybar / Rofi / Kitty / Mako / dock / GTK accents
+  -> Hyprland / Waybar / Rofi / Kitty / Mako / GTK accents
 ```
 
 Accent color is not scattered across component configs.
@@ -150,6 +149,7 @@ git clone https://github.com/Andre-cmd-rgb/hyprglass.git && cd hyprglass && chmo
 - backs up only hyprglass-managed files and system files it owns
 - installs official packages
 - auto-detects NVIDIA and installs the proprietary DKMS path when needed
+- removes `nvidia-open` / `nvidia-open-dkms` first if they are present, so the kernel-module path stays consistent
 - detects common installed kernels and installs matching headers for `nvidia-dkms`
 - deploys only hyprglass-managed config directories and helper scripts
 - writes portal preferences explicitly
@@ -157,7 +157,7 @@ git clone https://github.com/Andre-cmd-rgb/hyprglass.git && cd hyprglass && chmo
 - enables required system services
 - enables audio user units
 - detects your current keyboard layout and lets you override it during install
-- configures greetd so Hyprland auto-starts on boot without typing `Hyprland` manually
+- creates the `greeter` system user if it does not already exist and configures greetd so Hyprland auto-starts on boot without typing `Hyprland` manually
 - configures a dedicated graphical gtkgreet session so logout returns to a real login screen instead of a TTY
 - runs initial theme generation when a wallpaper is available
 
@@ -206,7 +206,8 @@ and updates a `current` symlink beside it.
 | `Super + Shift + E` | Open Kitty and attach/create `tmux` session |
 | `Super + Space` | Open Spotlight-style Rofi launcher |
 | `Super + E` | Open Thunar |
-| `Super + D` | Toggle dock |
+| `Super + N` | Open terminal Wi-Fi control (`impala`) |
+| `Super + A` | Open terminal audio control (`pulsemixer`/`alsamixer`) |
 | `Super + B` | Open Blueman manager |
 | `Super + Shift + D` | Toggle notification DND |
 | `Super + Shift + W` | Random wallpaper + regenerate theme |
@@ -255,11 +256,10 @@ Pick a random wallpaper from your wallpaper directory:
 - refreshes Waybar
 - reloads Mako
 - updates Kitty colors when possible
-- restarts the dock so CSS changes apply immediately
 
 ## Scaling
 
-Default monitor scale is **1.75**.
+Default monitor scale is **1.67**.
 
 That is deliberate for this build: it fits more on a 4K 16-inch laptop panel than 2x while still staying usable day to day. It is a fractional scale, so some Xwayland apps can still look less clean than they do at an integer scale.
 
@@ -316,5 +316,15 @@ During install, `install.sh` tries to detect your current layout from `localectl
 ## Terminal controls
 
 - Audio opens in `pulsemixer` inside Kitty.
-- Wi-Fi / network opens in `nmtui` inside Kitty.
+- Wi-Fi / network opens in `impala` inside Kitty.
 - Waybar click actions and `SUPER+A` / `SUPER+N` launch them as floating terminal tools.
+
+
+## Terminal control tools
+
+Hyprglass uses terminal-first control surfaces for radios and audio. Bluetooth opens in `bluetui`. Wi-Fi/network opens in `impala` only when `iwd` is the active wireless stack and NetworkManager is not running; otherwise it falls back to `impala`, because `impala` is designed around `iwd` and should not be forced into a NetworkManager-managed setup.
+
+
+## Wi-Fi terminal UI note
+
+Hyprglass launches **Impala** from Waybar and `Super+N`. Impala requires **iwd** to manage Wi-Fi. If you keep **NetworkManager** in charge of Wi-Fi, Impala will open but cannot manage networks until you move Wi-Fi management to `iwd`. Ethernet/LTE through NetworkManager can still remain in place.

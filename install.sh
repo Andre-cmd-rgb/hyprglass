@@ -3,7 +3,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROJECT_NAME="hyprglass"
-PROJECT_VERSION="1.3.0"
+PROJECT_VERSION="1.4.2"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_ROOT="$HOME/.config-backups/$PROJECT_NAME"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -24,6 +24,7 @@ SHARED_STATE_ROOT="/var/lib/hyprglass"
 SHARED_WALLPAPER_DIR="$SHARED_STATE_ROOT/wallpapers"
 SHARED_GREETER_DIR="$SHARED_STATE_ROOT/greeter"
 GREETD_HOME="/var/lib/greetd"
+GREETER_USER="greeter"
 KEYBOARD_LAYOUT="us"
 KEYBOARD_VARIANT=""
 
@@ -31,12 +32,12 @@ PACMAN_PKGS=(
   hyprland hyprpaper hyprpolkitagent
   xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
   waybar rofi mako kitty thunar thunar-archive-plugin file-roller
-  nwg-dock-hyprland matugen
+  matugen
   greetd greetd-gtkgreet
   tmux btop fastfetch cava
-  networkmanager network-manager-applet modemmanager
+  networkmanager modemmanager
   pipewire pipewire-audio pipewire-alsa pipewire-pulse wireplumber
-  bluez bluez-utils blueman
+  bluez bluez-utils bluetui impala iwd
   brightnessctl pavucontrol pulsemixer
   qt5-wayland qt6-wayland
   papirus-icon-theme ttf-jetbrains-mono-nerd noto-fonts noto-fonts-emoji
@@ -61,14 +62,22 @@ CONFIG_DIRS=(
 
 BIN_FILES=(
   launch-rofi
-  launch-dock
-  toggle-dock
   toggle-dnd
   mako-status
   theme-apply
   theme-random
   launch-audio
   launch-network
+  launch-bluetooth
+)
+
+OBSOLETE_CONFIG_DIRS=(
+  nwg-dock-hyprland
+)
+
+OBSOLETE_BIN_FILES=(
+  launch-dock
+  toggle-dock
 )
 
 SYSTEM_SERVICES=(
@@ -300,6 +309,14 @@ install_packages() {
 
   if (( NVIDIA_PRESENT == 1 )); then
     info "NVIDIA GPU detected. Installing proprietary DKMS driver path."
+
+    local -a conflicting_nvidia_pkgs=()
+    mapfile -t conflicting_nvidia_pkgs < <(pacman -Qq 2>/dev/null | grep -Ex 'nvidia-open|nvidia-open-dkms' || true)
+    if (( ${#conflicting_nvidia_pkgs[@]} > 0 )); then
+      warn "Removing open Nvidia kernel-module packages because hyprglass is configured for the proprietary DKMS path: $(printf '%s ' "${conflicting_nvidia_pkgs[@]}")"
+      sudo pacman -Rns --noconfirm -- "${conflicting_nvidia_pkgs[@]}"
+    fi
+
     mapfile -t nvidia_pkgs < <(collect_nvidia_packages)
     sudo pacman -S --noconfirm --needed "${nvidia_pkgs[@]}"
   else
@@ -379,7 +396,7 @@ prompt_keyboard_config() {
 backup_existing() {
   local existing=0 target dir bin file
 
-  for dir in "${CONFIG_DIRS[@]}"; do
+  for dir in "${CONFIG_DIRS[@]}" "${OBSOLETE_CONFIG_DIRS[@]}"; do
     if [[ -e "$HOME/.config/$dir" ]]; then
       existing=1
       break
@@ -387,7 +404,7 @@ backup_existing() {
   done
 
   if [[ "$existing" -eq 0 ]]; then
-    for bin in "${BIN_FILES[@]}"; do
+    for bin in "${BIN_FILES[@]}" "${OBSOLETE_BIN_FILES[@]}"; do
       if [[ -e "$HOME/.local/bin/$bin" ]]; then
         existing=1
         break
@@ -413,7 +430,7 @@ backup_existing() {
   BACKUP_CREATED=1
   info "Backing up managed configuration"
 
-  for dir in "${CONFIG_DIRS[@]}"; do
+  for dir in "${CONFIG_DIRS[@]}" "${OBSOLETE_CONFIG_DIRS[@]}"; do
     if [[ -e "$HOME/.config/$dir" ]]; then
       target="$BACKUP_DIR/.config/$dir"
       mkdir -p "$(dirname "$target")"
@@ -421,7 +438,7 @@ backup_existing() {
     fi
   done
 
-  for bin in "${BIN_FILES[@]}"; do
+  for bin in "${BIN_FILES[@]}" "${OBSOLETE_BIN_FILES[@]}"; do
     if [[ -e "$HOME/.local/bin/$bin" ]]; then
       target="$BACKUP_DIR/.local/bin/$bin"
       mkdir -p "$(dirname "$target")"
@@ -461,6 +478,16 @@ sync_bin_files() {
   done
 }
 
+cleanup_obsolete_managed() {
+  local dir bin
+  for dir in "${OBSOLETE_CONFIG_DIRS[@]}"; do
+    rm -rf "$HOME/.config/$dir"
+  done
+  for bin in "${OBSOLETE_BIN_FILES[@]}"; do
+    rm -f "$HOME/.local/bin/$bin"
+  done
+}
+
 sync_wallpapers() {
   install -d "$WALLPAPER_DIR"
   if [[ -d "$REPO_DIR/wallpapers" ]]; then
@@ -489,6 +516,7 @@ deploy_files() {
   info "Deploying project files"
   sync_config_dirs
   sync_bin_files
+  cleanup_obsolete_managed
   sync_wallpapers
   write_local_input_conf
   ok "Project files deployed"
@@ -531,6 +559,7 @@ GPUCONF
     echo '# NVIDIA is prioritized deliberately on this machine.'
     printf 'env = AQ_DRM_DEVICES,%s\n' "$(IFS=:; echo "${devices[*]}")"
     echo 'env = GBM_BACKEND,nvidia-drm'
+    echo 'env = LIBVA_DRIVER_NAME,nvidia'
     echo 'env = __GLX_VENDOR_LIBRARY_NAME,nvidia'
   } > "$NVIDIA_GPU_CONF"
 }
@@ -611,25 +640,55 @@ configure_nvidia() {
   ok "NVIDIA configuration written"
 }
 
+ensure_greeter_user() {
+  local shell_path="/usr/bin/nologin"
+  if [[ ! -x "$shell_path" ]]; then
+    shell_path="/usr/bin/false"
+  fi
+
+  if ! getent group "$GREETER_USER" >/dev/null 2>&1; then
+    sudo groupadd --system "$GREETER_USER"
+  fi
+
+  if ! id -u "$GREETER_USER" >/dev/null 2>&1; then
+    sudo useradd \
+      --system \
+      --gid "$GREETER_USER" \
+      --home-dir "$GREETD_HOME" \
+      --create-home \
+      --shell "$shell_path" \
+      --comment "greetd greeter user" \
+      "$GREETER_USER"
+  fi
+
+  local grp
+  for grp in video input render; do
+    if getent group "$grp" >/dev/null 2>&1; then
+      sudo gpasswd -a "$GREETER_USER" "$grp" >/dev/null 2>&1 || true
+    fi
+  done
+
+  sudo install -d -o "$GREETER_USER" -g "$GREETER_USER" -m 755 "$GREETD_HOME"
+}
+
 prepare_shared_greeter_assets() {
   info "Preparing shared greeter assets"
+  ensure_greeter_user
 
   sudo install -d -m 755 "$SHARED_STATE_ROOT"
-  sudo install -d -m 755 "$SHARED_WALLPAPER_DIR" "$SHARED_GREETER_DIR"
-  sudo chown "$USER":"$USER" "$SHARED_WALLPAPER_DIR" "$SHARED_GREETER_DIR"
+  sudo install -d -o "$USER" -g "$USER" -m 755 "$SHARED_WALLPAPER_DIR"
+  sudo install -d -o "$USER" -g "$USER" -m 755 "$SHARED_GREETER_DIR"
 
   if [[ -f "$HOME/.config/theme/generated/gtkgreet.css" ]]; then
-    install -m 644 "$HOME/.config/theme/generated/gtkgreet.css" "$SHARED_GREETER_DIR/gtkgreet.css"
+    sudo install -m 644 "$HOME/.config/theme/generated/gtkgreet.css" "$SHARED_GREETER_DIR/gtkgreet.css"
   fi
 
   if [[ -f "$WALLPAPER_DIR/default.png" ]]; then
-    install -m 644 "$WALLPAPER_DIR/default.png" "$SHARED_WALLPAPER_DIR/default.png"
-    if [[ ! -e "$SHARED_WALLPAPER_DIR/current" ]]; then
-      ln -sfn default.png "$SHARED_WALLPAPER_DIR/current"
-    fi
+    sudo install -m 644 "$WALLPAPER_DIR/default.png" "$SHARED_WALLPAPER_DIR/default.png"
+    sudo ln -sfn default.png "$SHARED_WALLPAPER_DIR/current"
   fi
 
-  sudo install -d -m 755 "$GREETD_HOME/.config/hypr"
+  sudo install -d -o "$GREETER_USER" -g "$GREETER_USER" -m 755 "$GREETD_HOME/.config/hypr"
   sudo tee "$GREETD_HOME/.config/hypr/hyprpaper.conf" >/dev/null <<EOF_HYPRPAPER
 ipc = true
 splash = false
@@ -640,7 +699,7 @@ wallpaper {
     fit_mode = cover
 }
 EOF_HYPRPAPER
-  sudo chown -R greetd:greetd "$GREETD_HOME/.config"
+  sudo chown -R "$GREETER_USER":"$GREETER_USER" "$GREETD_HOME/.config"
 
   ok "Shared greeter assets prepared"
 }
@@ -654,7 +713,7 @@ Hyprland
 EOF_ENV
 
   sudo tee /etc/greetd/hyprland-greeter.conf >/dev/null <<'EOF_GREETER_HYPR'
-monitor = , preferred, auto, 1.75
+monitor = , preferred, auto, 1.67
 
 xwayland {
     force_zero_scaling = true
@@ -742,7 +801,7 @@ runfile = "/run/greetd/hyprglass.run"
 
 [default_session]
 command = "/usr/bin/Hyprland --config /etc/greetd/hyprland-greeter.conf"
-user = "greeter"
+user = "$GREETER_USER"
 
 [initial_session]
 command = "/usr/bin/Hyprland"
@@ -856,25 +915,28 @@ Recommended next steps:
   2. Reboot once so greetd auto-login and any NVIDIA changes take effect cleanly.
   3. After boot, Hyprland will start automatically on tty1.
   4. Press Super+Space to open the launcher.
-  5. Press Super+D to toggle the dock.
-  6. Press Super+Shift+W to randomize the wallpaper and regenerate the theme.
+  5. Press Super+N for terminal Wi-Fi control.
+  6. Press Super+A for terminal audio control.
+  7. Press Super+Shift+W to randomize the wallpaper and regenerate the theme.
 
 To apply your own wallpaper manually:
   ~/.local/bin/theme-apply /absolute/path/to/wallpaper.png
 
 Notes:
-  - Default scale is 1.75, defined in ~/.config/hypr/conf.d/00-monitors.conf.
+  - Default scale is 1.67, defined in ~/.config/hypr/conf.d/00-monitors.conf.
   - Keyboard layout was set to '$KEYBOARD_LAYOUT'${KEYBOARD_VARIANT:+ with variant '$KEYBOARD_VARIANT'}.
   - GTK traffic-light buttons are best-effort styling, not a universal Linux guarantee.
   - Portals use Hyprland for compositor-specific features and GTK for FileChooser/OpenURI/Print.
   - greetd auto-logs into Hyprland once per boot; after logout it returns to a themed graphical gtkgreet login screen.
   - The greeter reuses the same wallpaper via shared state under /var/lib/hyprglass.
-  - Bluetooth pairing and tray control are handled by Blueman.
+  - The top bar is intentionally minimal: launcher, active window title, clock, DND, audio, brightness, battery.
+  - Bluetooth pairing remains available through Blueman on Super+B.
 EOF
 
   if (( NVIDIA_PRESENT == 1 )); then
     cat <<'EOF'
   - NVIDIA proprietary DKMS path was installed and prioritized deliberately on this machine.
+  - If nvidia-open or nvidia-open-dkms had been installed, hyprglass removed them to avoid mixing kernel-module paths.
   - Reboot after install so the DKMS modules, udev device symlinks, and mkinitcpio changes actually take effect.
   - On hybrid Intel+NVIDIA laptops this improves the chance of real NVIDIA rendering, but it also increases idle power draw and heat.
 EOF
