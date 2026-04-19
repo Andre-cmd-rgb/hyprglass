@@ -33,7 +33,7 @@
     "rewrite": {
       "(.*) — Mozilla Firefox": "$1",
       "(.*) - Kitty": "$1",
-      "(.*) - Thunar": "$1"
+      "(.*) - Files": "$1"
     }
   },
   "clock": {

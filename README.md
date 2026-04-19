@@ -23,7 +23,9 @@ This is not a personal dump of random dotfiles. It is a productized shell layout
 - Rofi
 - Mako
 - Kitty
-- Thunar
+- Nautilus (GNOME Files)
+- GNOME Calculator
+- GNOME Settings (gnome-control-center)
 
 ### Theming
 - matugen for palette/template generation only
@@ -205,7 +207,9 @@ and updates a `current` symlink beside it.
 | `Super + Return` | Open Kitty |
 | `Super + Shift + E` | Open Kitty and attach/create `tmux` session |
 | `Super + Space` | Open Spotlight-style Rofi launcher |
-| `Super + E` | Open Thunar |
+| `Super + E` | Open Nautilus (GNOME Files) |
+| `Super + C` | Open GNOME Calculator |
+| `Super + S` | Open GNOME Settings |
 | `Super + N` | Open terminal Wi-Fi control (`impala`) |
 | `Super + A` | Open terminal audio control (`pulsemixer`/`alsamixer`) |
 | `Super + B` | Open Blueman manager |
