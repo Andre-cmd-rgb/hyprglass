@@ -3,7 +3,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 PROJECT_NAME="hyprglass"
-PROJECT_VERSION="1.4.2"
+PROJECT_VERSION="1.5.0"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_ROOT="$HOME/.config-backups/$PROJECT_NAME"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -31,7 +31,8 @@ KEYBOARD_VARIANT=""
 PACMAN_PKGS=(
   hyprland hyprpaper hyprpolkitagent
   xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
-  waybar rofi mako kitty thunar thunar-archive-plugin file-roller
+  waybar rofi mako kitty
+  nautilus gnome-calculator gnome-control-center file-roller
   matugen
   greetd greetd-gtkgreet
   tmux btop fastfetch cava

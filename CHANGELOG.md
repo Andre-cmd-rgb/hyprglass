@@ -1,3 +1,11 @@
+## 1.5.0
+
+- switched default file manager from Thunar to Nautilus (GNOME Files) for a more polished GTK look
+- added GNOME Calculator as the default calculator, bound to Super+C and the XF86Calculator media key
+- added GNOME Settings (gnome-control-center) bound to Super+S for integrated system configuration
+- added Hyprland float rules for Nautilus, GNOME Calculator, and GNOME Settings
+- replaced thunar/thunar-archive-plugin in the installer package list with nautilus/gnome-calculator/gnome-control-center (file-roller retained for archive handling)
+
 ## 1.4.2
 
 - fixed Nvidia open-driver removal so installer no longer aborts when only one open package is installed
