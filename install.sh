@@ -27,6 +27,7 @@ GREETD_HOME="/var/lib/greetd"
 GREETER_USER="greeter"
 KEYBOARD_LAYOUT="us"
 KEYBOARD_VARIANT=""
+AUR_HELPER=""
 
 PACMAN_PKGS=(
   hyprland hyprpaper hyprpolkitagent
@@ -61,16 +62,51 @@ CONFIG_DIRS=(
   theme
 )
 
-BIN_FILES=(
+# Required: installer aborts if these are missing from the repo
+BIN_FILES_REQUIRED=(
+  theme-apply
+  theme-random
+)
+
+# Optional launchers: auto-generated with sensible defaults if absent from repo
+BIN_FILES_OPTIONAL=(
   launch-rofi
   toggle-dnd
   mako-status
-  theme-apply
-  theme-random
   launch-audio
   launch-network
   launch-bluetooth
 )
+
+BIN_FILES=("${BIN_FILES_REQUIRED[@]}" "${BIN_FILES_OPTIONAL[@]}")
+
+declare -A BIN_FILE_DEFAULTS
+
+BIN_FILE_DEFAULTS[launch-rofi]='#!/usr/bin/env bash
+exec rofi -show drun -show-icons'
+
+BIN_FILE_DEFAULTS[launch-audio]='#!/usr/bin/env bash
+exec kitty -- pulsemixer'
+
+BIN_FILE_DEFAULTS[launch-network]='#!/usr/bin/env bash
+exec kitty -- nmtui'
+
+BIN_FILE_DEFAULTS[launch-bluetooth]='#!/usr/bin/env bash
+exec kitty -- bluetui'
+
+BIN_FILE_DEFAULTS[toggle-dnd]='#!/usr/bin/env bash
+if makoctl mode | grep -q do-not-disturb; then
+  makoctl mode -r do-not-disturb
+else
+  makoctl mode -a do-not-disturb
+fi'
+
+BIN_FILE_DEFAULTS[mako-status]='#!/usr/bin/env bash
+if makoctl mode | grep -q do-not-disturb; then
+  printf "DND\n"
+else
+  printf "\n"
+fi'
 
 OBSOLETE_CONFIG_DIRS=(
   nwg-dock-hyprland
@@ -146,8 +182,18 @@ require_arch() {
 
   # shellcheck disable=SC1091
   source /etc/os-release
-  if [[ "${ID:-}" != "arch" ]]; then
-    fail "This installer targets Arch Linux. Detected: ${PRETTY_NAME:-unknown}."
+
+  # Accept Arch Linux and known Arch-based distros (CachyOS, EndeavourOS, etc.)
+  local is_arch_family=0
+  case "${ID:-}" in
+    arch|cachyos|endeavouros|manjaro|garuda) is_arch_family=1 ;;
+  esac
+  if [[ "$is_arch_family" -eq 0 ]] && echo "${ID_LIKE:-}" | grep -qw "arch"; then
+    is_arch_family=1
+  fi
+
+  if [[ "$is_arch_family" -eq 0 ]]; then
+    fail "This installer targets Arch Linux and Arch-based distros. Detected: ${PRETTY_NAME:-unknown}."
     exit 1
   fi
 
@@ -205,13 +251,24 @@ validate_repo() {
   info "Validating repository contents"
 
   local dir bin path line
+
   for dir in "${CONFIG_DIRS[@]}"; do
     [[ -d "$CONFIG_SRC/$dir" ]] || { fail "Missing required config directory: $CONFIG_SRC/$dir"; exit 1; }
   done
 
-  for bin in "${BIN_FILES[@]}"; do
-    [[ -f "$LOCAL_BIN_SRC/$bin" ]] || { fail "Missing helper script: $LOCAL_BIN_SRC/$bin"; exit 1; }
+  # Required bin files: abort if missing
+  for bin in "${BIN_FILES_REQUIRED[@]}"; do
+    [[ -f "$LOCAL_BIN_SRC/$bin" ]] || { fail "Missing required helper script: $LOCAL_BIN_SRC/$bin"; exit 1; }
     bash -n "$LOCAL_BIN_SRC/$bin"
+  done
+
+  # Optional bin files: warn if missing, will be generated during deployment
+  for bin in "${BIN_FILES_OPTIONAL[@]}"; do
+    if [[ -f "$LOCAL_BIN_SRC/$bin" ]]; then
+      bash -n "$LOCAL_BIN_SRC/$bin"
+    else
+      warn "Optional helper not found in repo (will be auto-generated): $bin"
+    fi
   done
 
   bash -n "$REPO_DIR/install.sh"
@@ -242,19 +299,27 @@ validate_repo() {
   ok "Repository validation passed"
 }
 
-install_yay_if_missing() {
+# Prefer paru (CachyOS default) over yay; install yay as last resort
+ensure_aur_helper() {
+  if command -v paru >/dev/null 2>&1; then
+    AUR_HELPER="paru"
+    ok "paru (AUR helper) already available"
+    return
+  fi
   if command -v yay >/dev/null 2>&1; then
-    ok "yay already installed"
+    AUR_HELPER="yay"
+    ok "yay (AUR helper) already available"
     return
   fi
 
-  info "Installing yay"
+  info "No AUR helper found. Installing yay."
   YAY_TMPDIR="$(mktemp -d)"
   git clone https://aur.archlinux.org/yay.git "$YAY_TMPDIR/yay"
   (
     cd "$YAY_TMPDIR/yay"
     makepkg -si --noconfirm
   )
+  AUR_HELPER="yay"
   ok "yay installed"
 }
 
@@ -274,28 +339,61 @@ detect_gpus() {
 }
 
 collect_nvidia_packages() {
-  local pkgs=(nvidia-dkms nvidia-utils egl-wayland)
-  local kernel headers
-  mapfile -t kernels < <(pacman -Qq | grep -Ex 'linux|linux-lts|linux-zen|linux-hardened' || true)
+  local pkgs=(nvidia-utils egl-wayland)
+  local kernel prebuilt hdr has_dkms=0
+  mapfile -t kernels < <(pacman -Qq | grep -Ex \
+    'linux|linux-lts|linux-zen|linux-hardened|linux-cachyos|linux-cachyos-lts|linux-cachyos-bore|linux-cachyos-bore-lts|linux-cachyos-eevdf|linux-cachyos-rc' \
+    || true)
 
   if (( ${#kernels[@]} == 0 )); then
-    warn "Could not detect an installed kernel package cleanly. Assuming linux/linux-headers."
-    kernels=(linux)
+    warn "Could not detect an installed kernel package. Assuming linux/linux-headers + nvidia-dkms."
+    pkgs+=(nvidia-dkms linux-headers)
+    printf '%s\n' "${pkgs[@]}" | awk '!seen[$0]++'
+    return
   fi
 
   for kernel in "${kernels[@]}"; do
     case "$kernel" in
-      linux) headers="linux-headers" ;;
-      linux-lts) headers="linux-lts-headers" ;;
-      linux-zen) headers="linux-zen-headers" ;;
-      linux-hardened) headers="linux-hardened-headers" ;;
+      linux)
+        pkgs+=(linux-headers)
+        has_dkms=1
+        ;;
+      linux-lts)
+        pkgs+=(linux-lts-headers)
+        has_dkms=1
+        ;;
+      linux-zen)
+        pkgs+=(linux-zen-headers)
+        has_dkms=1
+        ;;
+      linux-hardened)
+        pkgs+=(linux-hardened-headers)
+        has_dkms=1
+        ;;
+      linux-cachyos*)
+        # CachyOS ships precompiled NVIDIA modules; prefer them over DKMS to avoid
+        # conflicts. Fall back to nvidia-dkms only if the prebuilt package is absent.
+        prebuilt="${kernel}-nvidia"
+        hdr="${kernel}-headers"
+        if pacman -Si "$prebuilt" >/dev/null 2>&1; then
+          pkgs+=("$prebuilt" "$hdr")
+        else
+          pkgs+=("$hdr")
+          has_dkms=1
+        fi
+        ;;
       *)
         warn "Unknown kernel package '$kernel'. Install matching headers manually before using nvidia-dkms."
-        continue
+        has_dkms=1
         ;;
     esac
-    pkgs+=("$headers")
   done
+
+  # Add nvidia-dkms only when standard (non-CachyOS) kernels are present.
+  # Mixing nvidia-dkms with linux-cachyos-nvidia on the same kernel causes conflicts.
+  if (( has_dkms == 1 )); then
+    pkgs+=(nvidia-dkms)
+  fi
 
   if pacman -Si lib32-nvidia-utils >/dev/null 2>&1; then
     pkgs+=(lib32-nvidia-utils)
@@ -309,15 +407,18 @@ install_packages() {
   sudo pacman -Syu --noconfirm --needed "${PACMAN_PKGS[@]}"
 
   if (( NVIDIA_PRESENT == 1 )); then
-    info "NVIDIA GPU detected. Installing proprietary DKMS driver path."
+    info "NVIDIA GPU detected. Installing proprietary driver path."
 
     local -a conflicting_nvidia_pkgs=()
-    mapfile -t conflicting_nvidia_pkgs < <(pacman -Qq 2>/dev/null | grep -Ex 'nvidia-open|nvidia-open-dkms' || true)
+    mapfile -t conflicting_nvidia_pkgs < <(pacman -Qq 2>/dev/null | \
+      grep -Ex 'nvidia-open|nvidia-open-dkms|linux-cachyos-nvidia-open|linux-cachyos-lts-nvidia-open' \
+      || true)
     if (( ${#conflicting_nvidia_pkgs[@]} > 0 )); then
-      warn "Removing open Nvidia kernel-module packages because hyprglass is configured for the proprietary DKMS path: $(printf '%s ' "${conflicting_nvidia_pkgs[@]}")"
+      warn "Removing open NVIDIA module packages (conflicts with proprietary path): $(printf '%s ' "${conflicting_nvidia_pkgs[@]}")"
       sudo pacman -Rns --noconfirm -- "${conflicting_nvidia_pkgs[@]}"
     fi
 
+    local -a nvidia_pkgs=()
     mapfile -t nvidia_pkgs < <(collect_nvidia_packages)
     sudo pacman -S --noconfirm --needed "${nvidia_pkgs[@]}"
   else
@@ -325,11 +426,11 @@ install_packages() {
   fi
 
   if (( ${#AUR_PKGS[@]} > 0 )); then
-    install_yay_if_missing
+    ensure_aur_helper
     info "Installing AUR packages"
-    yay -S --noconfirm --needed "${AUR_PKGS[@]}"
+    "$AUR_HELPER" -S --noconfirm --needed "${AUR_PKGS[@]}"
   else
-    ok "No AUR packages required for this release; skipping yay bootstrap"
+    ok "No AUR packages required for this release; skipping AUR helper bootstrap"
   fi
 }
 
@@ -474,8 +575,19 @@ sync_config_dirs() {
 sync_bin_files() {
   local bin
   install -d "$HOME/.local/bin"
+
   for bin in "${BIN_FILES[@]}"; do
-    install -m 755 "$LOCAL_BIN_SRC/$bin" "$HOME/.local/bin/$bin"
+    if [[ -f "$LOCAL_BIN_SRC/$bin" ]]; then
+      # Install from repo
+      install -m 755 "$LOCAL_BIN_SRC/$bin" "$HOME/.local/bin/$bin"
+    elif [[ -n "${BIN_FILE_DEFAULTS[$bin]+_}" ]]; then
+      # Write generated default for optional launchers missing from repo
+      printf '%s\n' "${BIN_FILE_DEFAULTS[$bin]}" > "$HOME/.local/bin/$bin"
+      chmod 755 "$HOME/.local/bin/$bin"
+      info "Generated default launcher: ~/.local/bin/$bin"
+    else
+      warn "No source and no default defined for $bin — skipping"
+    fi
   done
 }
 
@@ -886,7 +998,12 @@ post_install_validation() {
 
   [[ -f "$HOME/.config/hypr/hyprland.conf" ]] || { fail "Hyprland config was not deployed"; exit 1; }
   [[ -f "$HOME/.config/hypr/conf.d/21-local-input.conf" ]] || { fail "Keyboard override fragment was not written"; exit 1; }
-  [[ -f "$HOME/.config/theme/generated/colors.css" ]] || { fail "Fallback theme files are missing after deployment"; exit 1; }
+
+  # Fallback theme may not exist yet on wallpaper-less fresh installs; warn only
+  if [[ ! -f "$HOME/.config/theme/generated/colors.css" ]]; then
+    warn "Fallback theme/colors.css not present — theme will generate on first wallpaper apply."
+  fi
+
   [[ -f "$PORTAL_DIR/hyprland-portals.conf" ]] || { fail "Portal configuration was not written"; exit 1; }
   [[ -f "$HOME/.config/hypr/conf.d/11-gpu.conf" ]] || { fail "GPU config fragment was not written"; exit 1; }
   sudo test -f /etc/greetd/config.toml || { fail "greetd configuration was not written"; exit 1; }
@@ -936,10 +1053,11 @@ EOF
 
   if (( NVIDIA_PRESENT == 1 )); then
     cat <<'EOF'
-  - NVIDIA proprietary DKMS path was installed and prioritized deliberately on this machine.
+  - NVIDIA proprietary driver path was installed and prioritized deliberately on this machine.
   - If nvidia-open or nvidia-open-dkms had been installed, hyprglass removed them to avoid mixing kernel-module paths.
-  - Reboot after install so the DKMS modules, udev device symlinks, and mkinitcpio changes actually take effect.
-  - On hybrid Intel+NVIDIA laptops this improves the chance of real NVIDIA rendering, but it also increases idle power draw and heat.
+  - On CachyOS, precompiled NVIDIA modules (linux-cachyos-nvidia) are used in place of nvidia-dkms where available.
+  - Reboot after install so the driver modules, udev device symlinks, and mkinitcpio changes actually take effect.
+  - On hybrid Intel+NVIDIA laptops this improves the chance of real NVIDIA rendering, but also increases idle power draw and heat.
 EOF
   fi
 
