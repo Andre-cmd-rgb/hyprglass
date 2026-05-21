@@ -931,10 +931,27 @@ EOF_GREETD
 enable_system_services() {
   local unit
   info "Enabling system services"
+
   for unit in "${SYSTEM_SERVICES[@]}"; do
-    sudo systemctl enable --now "$unit"
+    if sudo systemctl enable --now "$unit" 2>/dev/null; then
+      ok "Started: $unit"
+    else
+      # Service may not be startable during install (e.g. bluetooth hardware not ready,
+      # or already running under a live session). Enable only; it will start on next boot.
+      sudo systemctl enable "$unit" 2>/dev/null || true
+      warn "$unit could not be started now — enabled, will start on next boot"
+    fi
   done
-  sudo systemctl enable --now greetd.service >/dev/null 2>&1
+
+  # greetd will fail to start --now if another display manager is already running
+  # (common when installing from within an existing Hyprland/X session on CachyOS).
+  if sudo systemctl enable --now greetd.service 2>/dev/null; then
+    ok "Started: greetd.service"
+  else
+    sudo systemctl enable greetd.service 2>/dev/null || true
+    warn "greetd.service could not be started now — enabled, will start on next boot"
+  fi
+
   ok "System services enabled"
 }
 
